@@ -1,0 +1,82 @@
+#! /bin/bash
+
+notInstalledPackages=""
+neededPackages=("xclip" "mpv" "wmctrl")
+
+for package in "${neededPackages[@]}"
+do
+		if ! command -v $package &> /dev/null
+		then
+    echo $package
+			notInstalledPackages+=" $package"
+		fi
+done
+
+if ! command -v trans &> /dev/null
+then
+	notInstalledPackages+=" translate-shell"
+fi
+
+if [ ! -z "$notInstalledPackages" ]
+then
+	echo "You need to install the following package(s):$notInstalledPackages"
+	read -p "Do you want to continue? [y/N] " -n 1 -r confirm && [[ $confirm == [yY] ]] || exit 0
+	sudo apt install $notInstalledPackages
+fi
+
+
+listen=false
+translate=false
+browser=false
+source=""
+while getopts ltbs: flag
+do
+	case "${flag}" in
+		l) listen=true;;
+		t) translate=true;;
+		b) browser=true;;
+		s) source="$OPTARG"
+	esac
+done
+
+if [ -z "$source" ]
+then
+	source="$(xclip -sel primary -o | tr "\n" " ")";
+fi
+
+if $translate
+then
+	translation="$(trans en:vi -b -- "$source")"
+	wmctrl -c "HMH Translation" # Close previous HMH translate window
+	(sleep 0.1 && wmctrl -F -r 'HMH Translation' -b add,above) & # Make HMH translate window on top
+	zenity --info --title="HMH Translation" --text "$source\n__________________________________________________________________\n\n$translation" &
+fi 
+
+if $listen
+then
+	trans -no-translate -speak -s en -- "$source" &
+fi
+
+if $browser
+then
+	if [[ ${source} != *" "* ]]
+	then
+		# source does not contain " "
+		browserIsOpenned=false
+		if command -v microsoft-edge &> /dev/null
+		then
+			microsoft-edge --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source"
+			browserIsOpenned=true
+		elif command -v google-chrome &> /dev/null
+		then
+			google-chrome --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source"
+			browserIsOpenned=true
+		fi
+
+		if $browserIsOpened
+		then
+			sleep 0.1 && wmctrl -r :ACTIVE: -e 0,32,128,800,800 &
+		fi 
+
+	fi
+fi
