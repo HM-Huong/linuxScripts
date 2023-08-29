@@ -1,0 +1,16 @@
+#! /bin/bash
+
+# sudo ./hosts
+
+# copy hosts file to data folder if not exist
+if [ ! -f ./data/hosts.original ]; then
+	cp /etc/hosts ./data/hosts.original
+fi
+
+cp ./data/hosts.original /etc/hosts
+
+printf "\n\n# hostsVN\n" >> /etc/hosts
+curl https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts >> /etc/hosts
+
+printf "\n\n# StevenBlack's hosts\n" >> /etc/hosts
+curl https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn/hosts >> /etc/hosts
