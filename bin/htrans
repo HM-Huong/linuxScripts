@@ -39,9 +39,16 @@ do
 	esac
 done
 
-if [ -z "$source" ]
+if [ -z "$source" ] # If source is empty
 then
-	source="$(xclip -sel primary -o | tr "\n" " ")";
+	# assign source to the primary clipboard content
+	source="$(xclip -o -selection primary)"
+	# escape \ characters with \\
+	source="${source//\\/\\\\}"
+	# rejoin the words that are split across lines (which has a hypen at the end of its line)
+	source="${source//$'-\n'}"
+	# replace new line with space
+	source="${source//$'\n'/ }"
 fi
 
 if $translate
@@ -59,9 +66,9 @@ fi
 
 if $browser
 then
+	# if source does not contain " " or it's a single word
 	if [[ ${source} != *" "* ]]
 	then
-		# source does not contain " "
 		browserIsOpenned=false
 		if command -v microsoft-edge &> /dev/null
 		then
