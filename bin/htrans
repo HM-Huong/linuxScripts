@@ -49,7 +49,7 @@ if $translate_f; then
 	title="HMH Translator:    en  ->  vi"
 	wmctrl -F -c "$title" # Close previous HMH translate window
 	zenity --info --title="$title" --text "<span face='sans'>$source\n<span color='#87CEEB'>__________________________________________________________________</span>\n\n<span font='14'>$translation</span></span>" &
-	(sleep 0.2 && wmctrl -F -r "$title" -b add,above && wmctrl -F -r "$title" -e 0,2,32,-1,-1) & # Make HMH translate window on top
+	(sleep 0.12 && wmctrl -F -r "$title" -b add,above && wmctrl -F -r "$title" -e 0,2,32,-1,-1) & # Make HMH translate window on top
 fi
 
 if $listen_f; then
@@ -71,7 +71,7 @@ if $browser_f; then
 		fi
 
 		if $browserIsOpened; then
-			sleep 0.2 && wmctrl -r :ACTIVE: -e 0,2,32,800,800 &
+			sleep 0.12 && wmctrl -r :ACTIVE: -e 0,2,32,800,800 &
 		fi
 
 	fi
