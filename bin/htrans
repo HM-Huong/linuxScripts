@@ -1,4 +1,11 @@
 #! /bin/bash
+# htrans - a bash script to translate text from the clipboard, selected text, or text on the screen
+# you can assign keyboard shortcuts to this script to translate text from the clipboard or text on the screen
+# Translate:
+# 	- text from the clipboard or selected text: htrans -t
+# 	- translate and speak: htrans -tl
+# 	- text on the screen: htrans -tx
+# 	- look up a selected word on Oxford Learner's Dictionary: htrans -b
 
 notInstalledPackages=""
 neededPackages=("xclip" "mpv" "wmctrl")
@@ -23,50 +30,51 @@ fi
 listen_f=false
 translate_f=false
 browser_f=false
-source=""
-while getopts ltbs: flag; do
+source_text=""
+while getopts xltbs: flag; do
 	case "${flag}" in
 	l) listen_f=true ;;
+	x) source_text="$(xtext -r)" ;;
 	t) translate_f=true ;;
 	b) browser_f=true ;;
-	s) source="$OPTARG" ;;
+	s) source_text="$OPTARG" ;;
 	esac
 done
 
-if [ -z "$source" ]; then # If source is empty
-	# assign source to the primary clipboard content
-	source="$(xclip -o -selection primary)"
+if [ -z "$source_text" ]; then # If source_text is empty
+	# assign source_text to the primary clipboard content
+	source_text="$(xclip -o -selection primary)"
 	# escape \ characters with \\
-	source="${source//\\/\\\\}"
+	source_text="${source_text//\\/\\\\}"
 	# rejoin the words that are split across lines (which has a hypen at the end of its line)
-	source="${source//$'-\n'/}"
+	source_text="${source_text//$'-\n'/}"
 	# replace new line with space
-	source="${source//$'\n'/ }"
+	source_text="${source_text//$'\n'/ }"
 fi
 
 if $translate_f; then
-	translation="$(trans en:vi -b -- "$source")"
+	translation="$(trans en:vi -b -- "$source_text")"
 	title="HMH Translator:    en  ->  vi"
 	wmctrl -F -c "$title" # Close previous HMH translate window
-	zenity --info --title="$title" --text "<span face='sans'>$source\n<span color='#87CEEB'>__________________________________________________________________</span>\n\n<span font='14'>$translation</span></span>" &
+	zenity --info --title="$title" --text "<span face='sans'>$source_text\n<span color='#87CEEB'>__________________________________________________________________</span>\n\n<span font='14'>$translation</span></span>" &
 	(sleep 0.12 && wmctrl -F -r "$title" -b add,above && wmctrl -F -r "$title" -e 0,2,32,-1,-1) & # Make HMH translate window on top
 fi
 
 if $listen_f; then
-	trans -no-translate -speak -s en -- "$source" &
+	trans -no-translate -speak -s en -- "$source_text" &
 fi
 
 if $browser_f; then
-	# if source does not contain " " or it's a single word
-	if [[ ${source} != *" "* ]]; then
+	# if source_text does not contain " " or it's a single word
+	if [[ ${source_text} != *" "* ]]; then
 		browserIsOpenned=false
 		# close window that contains "OxfordLearnersDictionaries.com" in its title
 		wmctrl -c "OxfordLearnersDictionaries.com"
 		if command -v microsoft-edge &>/dev/null; then
-			microsoft-edge --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source"
+			microsoft-edge --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source_text"
 			browserIsOpenned=true
 		elif command -v google-chrome &>/dev/null; then
-			google-chrome --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source"
+			google-chrome --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source_text"
 			browserIsOpenned=true
 		fi
 

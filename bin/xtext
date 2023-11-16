@@ -1,0 +1,35 @@
+#!/bin/bash 
+# xtext - a bash script to extract text from the screen
+# Dependencies: tesseract-ocr tesseract-ocr-vie imagemagick gnome-screenshot
+
+tesseract_lang=eng+vie
+# if you want to use another language, change it
+
+SCR_IMG=`mktemp`
+trap "rm $SCR_IMG*" EXIT
+
+# scrot -s $SCR_IMG.png -q 100    
+gnome-screenshot -a -f $SCR_IMG.png  
+# increase image quality with option -q from default 75 to 100
+
+mogrify -modulate 100,0 -resize 400% $SCR_IMG.png 
+#should increase detection rate
+
+tesseract -l $tesseract_lang $SCR_IMG.png $SCR_IMG &> /dev/null
+
+source_text=$(cat $SCR_IMG.txt)
+
+while getopts r flag; do
+	case "${flag}" in
+	r)
+		# escape \ characters with \\
+		source_text="${source_text//\\/\\\\}"
+		# rejoin the words that are split across lines (which has a hypen at the end of its line)
+		source_text="${source_text//$'-\n'/}"
+		# replace new line with space
+		source_text="${source_text//$'\n'/ }"
+		;;
+	esac
+done
+
+echo -n "$source_text"
