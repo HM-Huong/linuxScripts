@@ -65,11 +65,12 @@ if $listen_f; then
 fi
 
 if $browser_f; then
+	# close window that contains "OxfordLearnersDictionaries.com" or "Google Translate" in its title
+	wmctrl -c "OxfordLearnersDictionaries.com"
+	wmctrl -Fc "Google Translate"
+	browserIsOpenned=false
 	# if source_text does not contain " " or it's a single word
 	if [[ ${source_text} != *" "* ]]; then
-		browserIsOpenned=false
-		# close window that contains "OxfordLearnersDictionaries.com" in its title
-		wmctrl -c "OxfordLearnersDictionaries.com"
 		if command -v microsoft-edge &>/dev/null; then
 			microsoft-edge --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source_text"
 			browserIsOpenned=true
@@ -77,10 +78,17 @@ if $browser_f; then
 			google-chrome --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source_text"
 			browserIsOpenned=true
 		fi
-
-		if $browserIsOpened; then
-			sleep 0.12 && wmctrl -r :ACTIVE: -e 0,2,32,800,800 &
+	else
+		if command -v microsoft-edge &>/dev/null; then
+			microsoft-edge --app="https://translate.google.com/?sl=en&tl=vi&text=$source_text"
+			browserIsOpenned=true
+		elif command -v google-chrome &>/dev/null; then
+			google-chrome --app="https://translate.google.com/?sl=en&tl=vi&text=$source_text"
+			browserIsOpenned=true
 		fi
+	fi
 
+	if $browserIsOpened; then
+		sleep 0.2 && wmctrl -r :ACTIVE: -e 0,999,32,800,800 &
 	fi
 fi
