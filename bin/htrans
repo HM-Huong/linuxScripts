@@ -10,6 +10,11 @@
 notInstalledPackages=""
 neededPackages=("xclip" "mpv" "wmctrl")
 
+# log function
+log() {
+	echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >>~/htrans.log
+}
+
 for package in "${neededPackages[@]}"; do
 	if ! command -v $package &>/dev/null; then
 		# echo $package
@@ -31,9 +36,11 @@ listen_f=false
 translate_f=false
 browser_f=false
 source_text=""
-while getopts xltbs: flag; do
+oxford_f=false
+while getopts xoltbs: flag; do
 	case "${flag}" in
 	l) listen_f=true ;;
+	o) oxford_f=true ;;
 	x) source_text="$(xtext -r)" ;;
 	t) translate_f=true ;;
 	b) browser_f=true ;;
@@ -49,7 +56,7 @@ if [ -z "$source_text" ]; then # If source_text is empty
 	# rejoin the words that are split across lines (which has a hypen at the end of its line)
 	source_text="${source_text//$'-\n'/}"
 	# replace new line with space
-	source_text="${source_text//$'\n'/ }"
+	# source_text="${source_text//$'\n'/ }"
 fi
 
 if $translate_f; then
@@ -64,31 +71,41 @@ if $listen_f; then
 	trans -no-translate -speak -s en -- "$source_text" &
 fi
 
+# open browser
+open_browser() {
+	local hasBrowser=false
+	local browser_list=("microsoft-edge" "google-chrome")
+	local browser=""
+	
+	for browser in "${browser_list[@]}"; do
+		if command -v $browser &>/dev/null; then
+			$browser --app="$1"
+			hasBrowser=true
+			break
+		fi
+	done
+
+	if $hasBrowser; then
+		sleep 0.12 && wmctrl -r :ACTIVE: -e 0,999,32,800,800 &
+	fi
+}
+
 if $browser_f; then
 	# close window that contains "OxfordLearnersDictionaries.com" or "Google Translate" in its title
 	wmctrl -c "OxfordLearnersDictionaries.com"
 	wmctrl -Fc "Google Translate"
-	browserIsOpenned=false
-	# if source_text does not contain " " or it's a single word
-	if [[ ${source_text} != *" "* ]]; then
-		if command -v microsoft-edge &>/dev/null; then
-			microsoft-edge --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source_text"
-			browserIsOpenned=true
-		elif command -v google-chrome &>/dev/null; then
-			google-chrome --app="https://www.oxfordlearnersdictionaries.com/definition/english/$source_text"
-			browserIsOpenned=true
-		fi
-	else
-		if command -v microsoft-edge &>/dev/null; then
-			microsoft-edge --app="https://translate.google.com/?sl=en&tl=vi&text=$source_text"
-			browserIsOpenned=true
-		elif command -v google-chrome &>/dev/null; then
-			google-chrome --app="https://translate.google.com/?sl=en&tl=vi&text=$source_text"
-			browserIsOpenned=true
-		fi
-	fi
+	
+	# convert source_text (have unicode characters) to url encoded text using jq
+	text_ascii="$(echo "$source_text" | jq -sRr @uri)"
+	# remove trailing %0A (new line) if exists
+	text_ascii="${text_ascii%"%0A"}"
+	# log "$source_text"
+	# log "$text_ascii"
 
-	if $browserIsOpened; then
-		sleep 0.2 && wmctrl -r :ACTIVE: -e 0,999,32,800,800 &
+	# if source_text is a single word (does not contain " " and "\n") and oxford_f is true
+	if [[ ${text_ascii} != *"%20"* && ${text_ascii} != *"%0A"* && $oxford_f == true ]]; then
+		open_browser "https://www.oxfordlearnersdictionaries.com/definition/english/$text_ascii"
+	else
+		open_browser "https://translate.google.com/?sl=en&tl=vi&text=$text_ascii&op=translate"
 	fi
 fi
