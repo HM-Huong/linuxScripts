@@ -52,11 +52,12 @@ if [ -z "$source_text" ]; then # If source_text is empty
 	# assign source_text to the primary clipboard content
 	source_text="$(xclip -o -selection primary)"
 	# escape \ characters with \\
-	source_text="${source_text//\\/\\\\}"
+	# source_text="${source_text//\\/\\\\}"
 	# rejoin the words that are split across lines (which has a hypen at the end of its line)
 	source_text="${source_text//$'-\n'/}"
-	# replace new line with space
-	# source_text="${source_text//$'\n'/ }"
+	source_text="${source_text//$'‐\n'/}"
+	# Use regex to remove only newline at lines that do not end with a dot
+	source_text=$(echo "$source_text" | perl -pe 's/([^.])\n/$1 /g')
 fi
 
 if $translate_f; then
@@ -76,7 +77,7 @@ open_browser() {
 	local hasBrowser=false
 	local browser_list=("microsoft-edge" "google-chrome")
 	local browser=""
-	
+
 	for browser in "${browser_list[@]}"; do
 		if command -v $browser &>/dev/null; then
 			$browser --app="$1"
@@ -94,7 +95,7 @@ if $browser_f; then
 	# close window that contains "OxfordLearnersDictionaries.com" or "Google Translate" in its title
 	wmctrl -c "OxfordLearnersDictionaries.com"
 	wmctrl -Fc "Google Translate"
-	
+
 	# convert source_text (have unicode characters) to url encoded text using jq
 	text_ascii="$(echo "$source_text" | jq -sRr @uri)"
 	# remove trailing %0A (new line) if exists
