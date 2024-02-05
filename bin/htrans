@@ -50,14 +50,13 @@ done
 
 if [ -z "$source_text" ]; then # If source_text is empty
 	# assign source_text to the primary clipboard content
-	source_text="$(xclip -o -selection primary)"
-	# escape \ characters with \\
-	# source_text="${source_text//\\/\\\\}"
+	source_text=$(xclip -o -selection primary)
 	# rejoin the words that are split across lines (which has a hypen at the end of its line)
-	source_text="${source_text//$'-\n'/}"
-	source_text="${source_text//$'‐\n'/}"
+	source_text=$(echo "$source_text" | sed -z -E 's/[-‐]\n//g')
 	# Use regex to remove only newline at lines that do not end with a dot
-	source_text=$(echo "$source_text" | perl -pe 's/([^.])\n/$1 /g')
+	source_text=$(echo "$source_text" | sed -z -E 's/([^.])\n/\1 /g')
+	# remove leading and trailing whitespaces
+	source_text=$(echo "$source_text" | sed -z -E 's/^\s+|\s+$//g')
 fi
 
 if $translate_f; then
@@ -87,7 +86,7 @@ open_browser() {
 	done
 
 	if $hasBrowser; then
-		sleep 0.12 && wmctrl -r :ACTIVE: -e 0,999,32,800,800 &
+		sleep 0.12 && wmctrl -r :ACTIVE: -e 0,2999,32,800,800 &
 	fi
 }
 
@@ -97,7 +96,7 @@ if $browser_f; then
 	wmctrl -Fc "Google Translate"
 
 	# convert source_text (have unicode characters) to url encoded text using jq
-	text_ascii="$(echo "$source_text" | jq -sRr @uri)"
+	text_ascii=$(echo "$source_text" | jq -sRr @uri)
 	# remove trailing %0A (new line) if exists
 	text_ascii="${text_ascii%"%0A"}"
 	# log "$source_text"
